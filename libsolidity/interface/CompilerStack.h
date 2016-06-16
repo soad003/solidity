@@ -88,6 +88,10 @@ public:
 	/// @param _readFile callback to used to read files for import statements. Should return
 	explicit CompilerStack(ReadFileCallback const& _readFile = ReadFileCallback());
 
+	/// Sets all input parameters according to @a _input which conforms to the standardized input
+	/// format.
+	bool compileStandardJSON(std::string const& _input);
+
 	/// Sets path remappings in the format "context:prefix=target"
 	void setRemappings(std::vector<std::string> const& _remappings);
 

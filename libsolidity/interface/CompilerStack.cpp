@@ -57,6 +57,59 @@ using namespace dev::solidity;
 CompilerStack::CompilerStack(ReadFileCallback const& _readFile):
 	m_readFile(_readFile), m_parseSuccessful(false) {}
 
+bool CompilerStack::compileStandardJSON(string const& _input)
+{
+	reset(false);
+
+	Json::Value input;
+	if (!Json::Reader().parse(_input, input, false))
+	{
+		auto err = make_shared<Error>(Error::Type::InputError);
+		*err <<
+			errinfo_comment("Error parsing standardized input.");
+		m_errors.push_back(std::move(err));
+		return false;
+	}
+	Json::Value const& sources = input["sources"];
+	for (auto const& sourceName: sources.getMemberNames())
+		addSource(sourceName, sources[sourceName].asString());
+
+	Json::Value const& settings = input["settings"];
+
+	vector<string> remappings;
+	for (auto const& remapping: settings["remappings"])
+		remappings.push_back(remapping.asString());
+	setRemappings(remappings);
+
+	{
+		Json::Value optimizerSettings = settings.get("optimizer", Json::Value());
+		m_optimize = optimizerSettings.get("enabled", Json::Value(false)).asBool();
+		m_optimizeRuns = optimizerSettings.get("runs", Json::Value(200u)).asUInt();
+	}
+
+	map<string, h160> libraries;
+	{
+		Json::Value jsonLibraries = settings.get("libraries", Json::Value());
+		for (auto const& library: jsonLibraries.getMemberNames())
+			libraries[library] = h160(jsonLibraries[library].asString());
+	}
+
+	//@TODO document: Can accept wildcards
+	//@TODO document: plural
+	vector<string> compilationTargets;
+	{
+		Json::Value targets = settings.get("compilationTargets", Json::Value());
+	}
+
+	//@TODO unlinked linker files should be output as such
+	// What are the use-cases?
+	// only type check
+	// only extract documentation
+	// only extract list of all contracts / libraries
+
+	return false;
+}
+
 void CompilerStack::setRemappings(vector<string> const& _remappings)
 {
 	vector<Remapping> remappings;
@@ -260,7 +313,9 @@ bool CompilerStack::compile(bool _optimize, unsigned _runs, map<string, h160> co
 		for (ASTPointer<ASTNode> const& node: source->ast->nodes())
 			if (auto contract = dynamic_cast<ContractDefinition const*>(node.get()))
 				compileContract(*contract, compiledContracts);
+
 	this->link();
+
 	return true;
 }
 
