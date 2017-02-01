@@ -163,6 +163,11 @@ BOOST_AUTO_TEST_CASE(function_calls)
 	BOOST_CHECK(successParse("{ g(1, 2, f(mul(2, 3))) x() }"));
 }
 
+BOOST_AUTO_TEST_CASE(labels_with_stack_info)
+{
+	BOOST_CHECK(successParse("{ x[-1]: y[a]: z[d, e]: h[100]: }"));
+}
+
 BOOST_AUTO_TEST_CASE(string_literals)
 {
 	BOOST_CHECK(successAssemble("{ let x := \"12345678901234567890123456789012\" }"));
