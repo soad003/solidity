@@ -59,6 +59,7 @@ private:
 	virtual void endVisit(FunctionDefinition const& _function) override;
 
 	virtual bool visit(MemberAccess const& _memberAccess) override;
+	virtual bool visit(VariableDeclaration const& _variable) override;
 
 	std::vector<Declaration const*> const& m_globals;
 
