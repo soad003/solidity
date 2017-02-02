@@ -90,7 +90,7 @@ public:
 
 	/// Sets all input parameters according to @a _input which conforms to the standardized input
 	/// format.
-	bool compileStandardJSON(std::string const& _input);
+	std::string compileStandardJSON(std::string const& _input);
 
 	/// Sets path remappings in the format "context:prefix=target"
 	void setRemappings(std::vector<std::string> const& _remappings);
