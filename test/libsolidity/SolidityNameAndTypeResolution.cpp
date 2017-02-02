@@ -93,7 +93,7 @@ parseAnalyseAndReturnError(string const& _source, bool _reportWarnings = false, 
 				}
 		if (success)
 		{
-			StaticAnalyzer staticAnalyzer(errors);
+			StaticAnalyzer staticAnalyzer(globalContext->declarations(), errors);
 			staticAnalyzer.analyze(*sourceUnit);
 		}
 		if (errors.size() > 1 && !_allowMultipleErrors)
@@ -5077,6 +5077,29 @@ BOOST_AUTO_TEST_CASE(invalid_address_length)
 	)";
 	CHECK_WARNING(text, "checksum");
 }
+
+BOOST_AUTO_TEST_CASE(shadowing_global_functions)
+{
+	char const* text = R"(
+		contract C {
+			function keccak256() {}
+		}
+	)";
+	CHECK_WARNING(text, "Shadowing global function");
+}
+
+BOOST_AUTO_TEST_CASE(shadowing_global_variables)
+{
+	char const* text = R"(
+		contract C {
+			function f() {
+				uint msg;
+			}
+		}
+	)";
+	CHECK_WARNING(text, "Shadowing global variable");
+}
+
 
 BOOST_AUTO_TEST_SUITE_END()
 
