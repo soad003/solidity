@@ -2,6 +2,7 @@
 
 Features:
  * Add ``assert(condition)``, which throws if condition is false.
+ * Type checker: Warn when builtin symbols (e.g. ``keccak256``, ``msg``, etc.) are overridden.
  * Type system: Support explicit conversion of external function to address.
 
 Bugfixes:
