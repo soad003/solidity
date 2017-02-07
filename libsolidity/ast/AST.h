@@ -316,20 +316,24 @@ protected:
 class ContractDefinition: public Declaration, public Documented
 {
 public:
+	enum class ContractKind { Interface, Contract, Library };
+
 	ContractDefinition(
 		SourceLocation const& _location,
 		ASTPointer<ASTString> const& _name,
 		ASTPointer<ASTString> const& _documentation,
 		std::vector<ASTPointer<InheritanceSpecifier>> const& _baseContracts,
 		std::vector<ASTPointer<ASTNode>> const& _subNodes,
-		bool _isLibrary
+		ContractKind _contractKind = ContractKind::Contract
 	):
 		Declaration(_location, _name),
 		Documented(_documentation),
 		m_baseContracts(_baseContracts),
 		m_subNodes(_subNodes),
-		m_isLibrary(_isLibrary)
-	{}
+		m_contractKind(_contractKind)
+	{
+		m_isLibrary = (m_contractKind == ContractKind::Library);
+	}
 
 	virtual void accept(ASTVisitor& _visitor) override;
 	virtual void accept(ASTConstVisitor& _visitor) const override;
@@ -369,9 +373,12 @@ public:
 
 	virtual ContractDefinitionAnnotation& annotation() const override;
 
+	ContractKind contractKind() const { return m_contractKind; }
+
 private:
 	std::vector<ASTPointer<InheritanceSpecifier>> m_baseContracts;
 	std::vector<ASTPointer<ASTNode>> m_subNodes;
+	ContractKind m_contractKind;
 	bool m_isLibrary;
 
 	// parsed Natspec documentation of the contract.
