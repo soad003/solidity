@@ -49,3 +49,5 @@ done
 # Test library checksum
 echo 'contact C {}' | "$SOLC" --link --libraries a:0x90f20564390eAe531E810af625A22f51385Cd222
 ! echo 'contract C {}' | "$SOLC" --link --libraries a:0x80f20564390eAe531E810af625A22f51385Cd222 2>/dev/null
+
+echo "All commandline tests finished."
