@@ -101,6 +101,7 @@ static string const g_strSrcMapRuntime = "srcmap-runtime";
 static string const g_strVersion = "version";
 static string const g_stdinFileNameStr = "<stdin>";
 static string const g_strMetadataLiteral = "metadata-literal";
+static string const g_strStandardJSON = "standard-json";
 
 static string const g_argAbi = g_strAbi;
 static string const g_argAddStandard = g_strAddStandard;
@@ -130,6 +131,7 @@ static string const g_argSignatureHashes = g_strSignatureHashes;
 static string const g_argVersion = g_strVersion;
 static string const g_stdinFileName = g_stdinFileNameStr;
 static string const g_argMetadataLiteral = g_strMetadataLiteral;
+static string const g_argStandardJSON = g_strStandardJSON;
 
 /// Possible arguments to for --combined-json
 static set<string> const g_combinedJsonArgs{
@@ -525,7 +527,8 @@ Allowed options)",
 			"Switch to linker mode, ignoring all options apart from --libraries "
 			"and modify binaries in place."
 		)
-		(g_argMetadataLiteral.c_str(), "Store referenced sources are literal data in the metadata output.");
+		(g_argMetadataLiteral.c_str(), "Store referenced sources are literal data in the metadata output.")
+		(g_argStandardJSON.c_str(), "Process standard JSON input / output.");
 	po::options_description outputComponents("Output Components");
 	outputComponents.add_options()
 		(g_argAst.c_str(), "AST of all source files.")
@@ -593,6 +596,32 @@ Allowed options)",
 
 bool CommandLineInterface::processInput()
 {
+	if (m_args.count(g_argStandardJSON))
+	{
+		string s;
+		while (!cin.eof())
+		{
+			getline(cin, s);
+		}
+		cout << "Standard Input JSON: " << s << endl;
+		try {
+			m_compiler.reset(new CompilerStack());
+			cout << "Standard Output JSON: " << m_compiler->compileStandardJSON(s) << endl;
+		}
+		catch (Exception const& _exception)
+		{
+			cerr << "Exception during compilation: " << boost::diagnostic_information(_exception) << endl;
+			return false;
+		}
+		catch (...)
+		{
+			cerr << "Unknown exception during compilation." << endl;
+			return false;
+		}
+
+		return true;
+	}
+
 	readInputFilesAndConfigureRemappings();
 
 	if (m_args.count(g_argLibraries))
