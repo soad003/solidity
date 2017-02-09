@@ -35,6 +35,7 @@
 #include <libevmasm/SourceLocation.h>
 #include <libevmasm/LinkerObject.h>
 #include <libsolidity/interface/Exceptions.h>
+#include <libsolidity/interface/CompilerStack.h>
 
 namespace dev
 {
@@ -61,8 +62,16 @@ public:
 
 	/// Creates a new compiler stack.
 	/// @param _readFile callback to used to read files for import statements. Should return
-	StandardCompiler(ReadFileCallback const& _readFile = ReadFileCallback()):
-		m_readFile(_readFile) {}
+	StandardCompiler(ReadFileCallback const& _readFile = ReadFileCallback())
+	{
+		CompilerStack::ReadFileCallback fileReader = [this](string const& _path)
+		{
+			auto ret = _readFile(_path)
+			return CompilerStack::ReadFileResult{ret.success, ret.contentsOrErrorMessage};
+		}
+
+		m_compilerStack = CompilerStack(fileReader);
+	}
 
 	/// Sets all input parameters according to @a _input which conforms to the standardized input
 	/// format.
@@ -70,7 +79,7 @@ public:
 	std::string compile(std::string const& _input);
 
 private:
-	ReadFileCallback m_readFile;
+	CompilerStack m_compilerStack;
 };
 
 }
