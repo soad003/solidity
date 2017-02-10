@@ -32,6 +32,7 @@
 #include <libsolidity/analysis/NameAndTypeResolver.h>
 #include <libsolidity/interface/Exceptions.h>
 #include <libsolidity/interface/CompilerStack.h>
+#include <libsolidity/interface/StandardCompiler.h>
 #include <libsolidity/interface/SourceReferenceFormatter.h>
 #include <libsolidity/interface/GasEstimator.h>
 #include <libsolidity/formal/Why3Translator.h>
@@ -598,28 +599,16 @@ bool CommandLineInterface::processInput()
 {
 	if (m_args.count(g_argStandardJSON))
 	{
-		string s;
-		while (!cin.eof())
-		{
-			getline(cin, s);
-		}
-		cout << "Standard Input JSON: " << s << endl;
-		try {
-			m_compiler.reset(new CompilerStack());
-			cout << "Standard Output JSON: " << m_compiler->compileStandardJSON(s) << endl;
-		}
-		catch (Exception const& _exception)
-		{
-			cerr << "Exception during compilation: " << boost::diagnostic_information(_exception) << endl;
-			return false;
-		}
-		catch (...)
-		{
-			cerr << "Unknown exception during compilation." << endl;
-			return false;
-		}
-
-		return true;
+//		string s;
+//		while (!cin.eof())
+//		{
+//			getline(cin, s);
+//		}
+		string s = R"({ "language": "Solidity", "sources": { "mortal": { "keccak256": "0x234...", "content": "contract owned { address owner; } contract mortal is owned { function kill() { if (msg.sender == owner) selfdestruct(owner); } }" } }, "settings": { "remappings": [ ":g/dir" ], "optimizer": { "enabled": true, "runs": 500 }, "metadata": { "useLiteralContent": true }, "libraries": { "myFile.sol": { "MyLib": "0x123123" } }, "outputSelection": { "*": { "*": [ "metadata", "evm.bytecode" ], "": [ "ast", "why3" ] } } } })";
+		StandardCompiler compiler;
+		cout << "Standard Input JSON: " << s << endl << endl;
+		cout << "Standard Output JSON: " << compiler.compile(s) << endl;
+		return false;
 	}
 
 	readInputFilesAndConfigureRemappings();
