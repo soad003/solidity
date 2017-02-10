@@ -54,7 +54,7 @@ public:
 	struct ReadFileResult
 	{
 		bool success;
-		std::string contentsOrErrorMesage;
+		std::string contentsOrErrorMessage;
 	};
 
 	/// File reading callback.
@@ -62,23 +62,25 @@ public:
 
 	/// Creates a new compiler stack.
 	/// @param _readFile callback to used to read files for import statements. Should return
-	StandardCompiler(ReadFileCallback const& _readFile = ReadFileCallback())
+	StandardCompiler(ReadFileCallback const& _readFile = ReadFileCallback()):
+		m_readFile(_readFile)
 	{
-		CompilerStack::ReadFileCallback fileReader = [this](string const& _path)
+		CompilerStack::ReadFileCallback fileReader = [this](std::string const& _path)
 		{
-			auto ret = _readFile(_path)
+			auto ret = m_readFile(_path);
 			return CompilerStack::ReadFileResult{ret.success, ret.contentsOrErrorMessage};
-		}
+		};
 
-		m_compilerStack = CompilerStack(fileReader);
+		m_compilerStack.reset(new CompilerStack(fileReader));
 	}
 
 	/// Sets all input parameters according to @a _input which conforms to the standardized input
 	/// format.
-	Json::Value compiler(Json::Value const& _input);
+	Json::Value compile(Json::Value const& _input);
 	std::string compile(std::string const& _input);
 
 private:
+	ReadFileCallback m_readFile;
 	CompilerStack m_compilerStack;
 };
 

@@ -20,7 +20,6 @@
  * Full-stack compiler that converts a source code string to bytecode.
  */
 
-
 #include <libsolidity/interface/StandardCompiler.h>
 
 #include <libsolidity/interface/CompilerStack.h>
@@ -49,10 +48,148 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 
+
 using namespace std;
 using namespace dev;
 using namespace dev::solidity;
 
 string StandardCompiler::compile(string const& _input)
 {
+	Json::Value input;
+	if (!Json::Reader().parse(_input, input, false))
+	{
+		return "{\"errors\":\"[{\"type\":\"InputError\",\"component\":\"general\",\"severity\":\"error\",\"message\":\"Error parsing input JSON.\"}]}";
+	}
+//	return jsonCompactPrint(compile(input));
+cout << "Input: " << input.toStyledString() << endl;
+	Json::Value output = compile(input);
+cout << "Output: " << output.toStyledString() << endl;
+	return jsonCompactPrint(output);
+}
+
+Json::Value StandardCompiler::compile(Json::Value const& _input)
+{
+	m_compilerStack.reset(false);
+
+	Json::Value const& sources = _input["sources"];
+	for (auto const& sourceName: sources.getMemberNames())
+		m_compilerStack.addSource(sourceName, sources[sourceName]["content"].asString());
+
+	Json::Value const& settings = _input["settings"];
+
+	vector<string> remappings;
+	for (auto const& remapping: settings["remappings"])
+		remappings.push_back(remapping.asString());
+	m_compilerStack.setRemappings(remappings);
+
+	Json::Value optimizerSettings = settings.get("optimizer", Json::Value());
+	bool optimize = optimizerSettings.get("enabled", Json::Value(false)).asBool();
+	unsigned optimizeRuns = optimizerSettings.get("runs", Json::Value(200u)).asUInt();
+
+	map<string, h160> libraries;
+//	{
+//		Json::Value jsonLibraries = settings.get("libraries", Json::Value());
+//		for (auto const& library: jsonLibraries.getMemberNames())
+//			libraries[library] = h160(jsonLibraries[library].asString());
+//	}
+
+	//@TODO document: Can accept wildcards
+	//@TODO document: plural
+	vector<string> compilationTargets;
+	{
+		Json::Value targets = settings.get("compilationTargets", Json::Value());
+	}
+
+	try {
+		m_compilerStack.compile(optimize, optimizeRuns, libraries);
+	}
+/*
+        catch (CompilerError const& _exception)
+        {
+                SourceReferenceFormatter::printExceptionInformation(cerr, _exception, "Compiler error", scannerFromSourceName);
+                return false;
+        }
+*/
+        catch (InternalCompilerError const& _exception)
+        {
+                cerr << "Internal compiler error during compilation:" << endl
+                         << boost::diagnostic_information(_exception);
+                return Json::Value();
+        }
+        catch (UnimplementedFeatureError const& _exception)
+        {
+                cerr << "Unimplemented feature:" << endl
+                         << boost::diagnostic_information(_exception);
+                return Json::Value();
+        }
+/*
+        catch (Error const& _error)
+        {
+                if (_error.type() == Error::Type::DocstringParsingError)
+                        cerr << "Documentation parsing error: " << *boost::get_error_info<errinfo_comment>(_error) << endl;
+                else
+                        SourceReferenceFormatter::printExceptionInformation(cerr, _error, _error.typeName(), scannerFromSourceName);
+
+                return Json::Value();
+        }
+*/
+	catch (Exception const& _exception)
+	{
+		cerr << "Exception during compilation: " << boost::diagnostic_information(_exception) << endl;
+		return Json::Value();
+	}
+	catch (...)
+	{
+		cerr << "Unknown exception during compilation." << endl;
+		return Json::Value();
+	}
+
+	//@TODO unlinked linker files should be output as such
+	// What are the use-cases?
+	// only type check
+	// only extract documentation
+	// only extract list of all contracts / libraries
+
+	Json::Value output = Json::objectValue;
+
+	vector<string> contracts = m_compilerStack.contractNames();
+        if (!contracts.empty())
+        {
+		output["contracts"] = Json::objectValue;
+		output["contracts"][""] = Json::objectValue;
+
+		Json::Value contractsOutput = Json::objectValue;
+		for (string const& contractName: contracts)
+		{
+			Json::Value contractData(Json::objectValue);
+                        contractData["abi"] = dev::jsonCompactPrint(m_compilerStack.interface(contractName));
+                        contractData["metadata"] = m_compilerStack.onChainMetadata(contractName);
+                        
+                        Json::Value evmData(Json::objectValue);
+                        evmData["bytecode"] = m_compilerStack.object(contractName).toHex();
+                        evmData["runtimebytecode"] = m_compilerStack.runtimeObject(contractName).toHex();
+                        evmData["clone"] = m_compilerStack.cloneObject(contractName).toHex();
+                        evmData["opcodes"] = solidity::disassemble(m_compilerStack.object(contractName).bytecode);
+//                {
+//                        ostringstream unused;
+//                        contractData["assembly"] = m_compilerStack.streamAssembly(unused, contractName, m_sourceCodes, true);
+//                }
+                {
+                        auto map = m_compilerStack.sourceMapping(contractName);
+                        evmData["srcmap"] = map ? *map : "";
+                }
+                {
+                        auto map = m_compilerStack.runtimeSourceMapping(contractName);
+                        evmData["srcmapruntime"] = map ? *map : "";
+                }
+            		contractData["evm"] = evmData;
+                        contractData["devdoc"] = dev::jsonCompactPrint(m_compilerStack.metadata(contractName, DocumentationType::NatspecDev));
+                        contractData["userdoc"] = dev::jsonCompactPrint(m_compilerStack.metadata(contractName, DocumentationType::NatspecUser));
+                
+            		contractsOutput[contractName] = contractData;
+		}
+		output["contracts"][""] = contractsOutput;
+        }
+
+	return output;
 }
