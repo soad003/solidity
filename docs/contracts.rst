@@ -908,6 +908,33 @@ Such contracts cannot be compiled (even if they contain implemented functions al
 
 If a contract inherits from an abstract contract and does not implement all non-implemented functions by overriding, it will itself be abstract.
 
+.. index:: ! contract;interface, ! interface contract
+
+**********
+Interfaces
+**********
+
+Interfaces are similar to abstract contracts, but they cannot have any functions implemented. There are further restrictions:
+
+#. Cannot inherit other contracts or interfaces.
+#. Cannot define variables.
+#. Cannot define structs.
+
+(Structs might be supported in the future if the ABI adds support to them.)
+
+Interfaces are basically limited to what the Contract ABI can represent and the conversion between the ABI and
+an Interface should be possible without any information loss.
+
+Interfaces are denoted by their own keyword:
+
+::
+
+    interface Token {
+        function transfer(address recipient, uint amount);
+    }
+
+Contracts can inherit interfaces as they would inherit other contracts.
+
 .. index:: ! library, callcode, delegatecall
 
 .. _libraries:
@@ -1087,7 +1114,7 @@ Restrictions for libraries in comparison to contracts:
 
 - No state variables
 - Cannot inherit nor be inherited
-- Cannot recieve Ether
+- Cannot receive Ether
 
 (These might be lifted at a later point.)
 
